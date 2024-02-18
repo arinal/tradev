@@ -1,12 +1,14 @@
 package org.lamedh.voltrad.core
 package alerts
 
-import cats.Show
-import cats.derived.*
-import io.circe.Codec
 import lib.core.IdNewtype
 import lib.core.Cid
 import lib.core.Timestamp
+
+import io.circe.Codec
+
+import cats.Show
+import cats.derived.*
 import cats.kernel.Eq
 
 type AlertId = AlertId.Type
