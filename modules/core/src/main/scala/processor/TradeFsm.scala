@@ -1,12 +1,13 @@
 package org.lamedh.voltrad.core
 
+import lib.core.Fsm
+import lib.core.Timestamp
+
 import TradeCommand.*
 import SwitchCommand.*
 import TradeEvent.*
 import SwitchEvent.*
-import Status.*
-import lib.core.Fsm
-import lib.core.Timestamp
+import TradeStatus.*
 
 object TradeFsm:
 

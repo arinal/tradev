@@ -45,5 +45,5 @@ object Main extends IOApp.Simple:
       swProd <- pulsar.Producer.make[IO, SwitchEvent](client, conf.switchProducer)
       trCons <- pulsar.Consumer.make[IO, TradeCommand](client, conf.tradeConsumer)
       swCons <- pulsar.Consumer.make[IO, SwitchCommand](client, conf.switchConsumer)
-      fsm = Engine.fsm[IO, MessageId](trProd, swProd)
+      fsm = Engine.fsm[IO, MessageId](trProd, swProd, trCons, swCons)
     yield (trCons, swCons, fsm)

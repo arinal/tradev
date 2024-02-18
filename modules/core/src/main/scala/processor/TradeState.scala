@@ -9,20 +9,11 @@ import monocle.Focus
 import monocle.function.At
 import monocle.function.Index
 
-type Price = Price.Type
-object Price extends NumNewtype[BigDecimal]
-
-type AskPrice = Price
-type BidPrice = Price
-
 type Quantity = Quantity.Type
 object Quantity extends NumNewtype[Int]
 
-enum Status derives Eq, Show:
-  case On, Off
-
 case class TradeState(
-    status: Status,
+    status: TradeStatus,
     prices: Map[Symbol, Prices]
 ) derives Eq, Show:
 
@@ -40,7 +31,7 @@ case class TradeState(
         TradeState.L.prices.at(symbol).modify(_.orElse(Prices.empty.some).map(g))(this)
 
 object TradeState:
-  val empty = TradeState(Status.Off, Map.empty)
+  val empty = TradeState(TradeStatus.Off, Map.empty)
 
   object L:
     val status = Focus[TradeState](_.status)
