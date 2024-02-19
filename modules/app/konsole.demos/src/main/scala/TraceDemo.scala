@@ -42,12 +42,13 @@ import java.util.UUID
 // The event that will be sent to message broker upon user creation.
 // The event DOES NOT contain any tracing context specific properties.
 // Event is part of domain model, while tracing context is infrasucture / application concerns.
-// Being the lowest layer, domain model will never access the upper layer.
+// Being the lowest layer, domain model should never access the upper layer.
 case class UserCreated(id: UUID, person: Person) derives Codec.AsObject
 
 // You might notice that the domain has circe specific logic, which
-// is not a domain concerns. Since putting circe directly as derives
-// will omit a lot of boilerplate codes, it's a good trade off.
+// is not a domain concerns. Since putting circe directly in domain
+// class using derives omits a lot of boilerplate codes, it's a good trade off.
+// Another example not to be too strict with the principles.
 case class Person(id: Int, name: String) derives Show, Codec.AsObject
 
 //  ____
@@ -60,8 +61,8 @@ final class UserServer[F[_]: Sync] extends Http4sDsl[F]:
 
   /**
    * Create htt4s routes with 2 endpoints, our span creation begins on every endpoint.
-   * To understand the span structures better, see:
-   * https://typelevel.org/natchez/overview.html
+   * To understand the span structures better, see the link below.
+   * @see https://typelevel.org/natchez/overview.html
    * @param ep: EntryPoint[F] - the entry point to create new span
    * @param producer: Producer - generic trait to send the events to message broker
    */
@@ -73,10 +74,10 @@ final class UserServer[F[_]: Sync] extends Http4sDsl[F]:
     // Upon failure (no propagated context found), fallback to create a new root span.
     // This function is called on every endpoint.
     def spanRoot(req: org.http4s.Request[F]) =
-      val map  = req.headers.headers.map { h => h.name -> h.value }.toMap
+      val headers  = req.headers.headers.map { h => h.name -> h.value }.toMap
       // kernel is the natchez term for tracing context data used for propagation.
       // Below, the data is extracted from http headers.
-      val kern = Kernel(map) 
+      val kern = Kernel(headers) 
       ep.continueOrElseRoot("rootHttp", kern)
 
     HttpRoutes.of[F] {
@@ -118,8 +119,8 @@ object ServerMain extends IOApp.Simple:
 
   val resources =
     for
-      // honeycomb is just the name of specific provider for endpoint
-      // another provider like DataDog could be used
+      // honeycomb is just the name of specific provider for tracing.
+      // another provider like DataDog could be used.
       ep   <- honeycombEp[IO]("server-app")
       prod <- producer[IO]
       routes = new UserServer[IO].routes(ep, prod)
@@ -138,7 +139,7 @@ object ConsumerMain extends IOApp.Simple:
       .flatMap { (ep, consumer) =>
         // `consumer.receiveMsg` is a stream of `Message`.
         // It contains both the payload (the event) and the
-        // Map[String, String] which in this case, contains the kernel.
+        // `Map[String, String]` which in this case, contains the kernel.
         // See the structures of `Message`:
         // https://github.com/arinal/tradev/blob/main/modules/lib/src/main/scala/core/eda/Consumer.scala#L19
         // Also, this is how `.receiveMsg` in pulsar is impelemented:
