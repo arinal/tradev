@@ -33,9 +33,22 @@ import cats.Show
 
 import java.util.UUID
 
-// Domin model
-case class Person(id: Int, name: String) derives Show, Codec.AsObject
+//  ____  
+// |  _ \  ___  _ __ ___   __ _(_)_ __
+// | | | |/ _ \| '_ ` _ \ / _` | | '_ \
+// | |_| | (_) | | | | | | (_| | | | | |
+// |____/ \___/|_| |_| |_|\__,_|_|_| |_|
+
+// The event that will be sent to message broker upon user creation.
+// The event DOES NOT contain any tracing context specific properties.
+// Event is part of domain model, while tracing context is infrasucture / application concerns.
+// Being the lowest layer, domain model will never access the upper layer.
 case class UserCreated(id: UUID, person: Person) derives Codec.AsObject
+
+// You might notice that the domain has circe specific logic, which
+// is not a domain concerns. Since putting circe directly as derives
+// will omit a lot of boilerplate codes, it's a good trade off.
+case class Person(id: Int, name: String) derives Show, Codec.AsObject
 
 //  ____
 // / ___|  ___ _ ____   _____ _ __
@@ -43,19 +56,27 @@ case class UserCreated(id: UUID, person: Person) derives Codec.AsObject
 //  ___) |  __/ |   \ V /  __/ |
 // |____/ \___|_|    \_/ \___|_|
 
-final class UserServer[F[_]: Sync: MonadCancelThrow] extends Http4sDsl[F]:
+final class UserServer[F[_]: Sync] extends Http4sDsl[F]:
 
-  /** 
+  /**
+   * Create htt4s routes with 2 endpoints, our span creation begins on every endpoint.
+   * To understand the span structures better, see:
+   * https://typelevel.org/natchez/overview.html
    * @param ep: EntryPoint[F] - the entry point to create new span
-   * @param producer: Producer[F, UserCreated] - used to send messages to a message broker
+   * @param producer: Producer - generic trait to send the events to message broker
    */
-  def app(ep: EntryPoint[F], producer: Producer[F, UserCreated]) =
+  def routes(ep: EntryPoint[F], producer: Producer[F, UserCreated]) =
 
-    // HIGHTLIGHT: use http headers to extract from upstream
-    // try to continue the trace given upstream, fallback to create new root span if failed
+    // Extract the http headers (since this is a HTTP server app)
+    // to get the current tracing context propagated from upstream (if any).
+    // The extracted context will then used to create a new span.
+    // Upon failure (no propagated context found), fallback to create a new root span.
+    // This function is called on every endpoint.
     def spanRoot(req: org.http4s.Request[F]) =
       val map  = req.headers.headers.map { h => h.name -> h.value }.toMap
-      val kern = Kernel(map) // kernel is natchez term for shared context accross services
+      // kernel is the natchez term for tracing context data used for propagation.
+      // Below, the data is extracted from http headers.
+      val kern = Kernel(map) 
       ep.continueOrElseRoot("rootHttp", kern)
 
     HttpRoutes.of[F] {
@@ -74,11 +95,16 @@ final class UserServer[F[_]: Sync: MonadCancelThrow] extends Http4sDsl[F]:
             for
               _  <- t2.put("user" -> newUser.show)
               _  <- t2.log("Send userid to producer")
+              // Get the current kernel to be propagated to broker.
+              // Current kernel can be extracted anywhere in our code, as long as we have the span.
               k  <- t2.kernel
               id <- GenUUID[F].make
               event = UserCreated(id, newUser)
-              // HIGHTLIGHT: send message using additional headers
-              // in another word: the event doesn't need to have context specific properties
+              // Sending with producer needs 2 parameters: the payload and additional headers.
+              // Kafka and Pulsar provide an additional headers to be sent along with the payload.
+              // This is one of the way to avoid putting the tracing context into the domain model.
+              // See the link below for pulsar producer implementation:
+              // https://github.com/arinal/tradev/blob/main/modules/lib/src/main/scala/infra/eda/pulsar/Producer.scala#L36
               _  <- producer.send(event, k.headers)
               ok <- Ok(s"$newUser is created")
             yield ok
@@ -93,13 +119,13 @@ object ServerMain extends IOApp.Simple:
   val resources =
     for
       // honeycomb is just the name of specific provider for endpoint
-      // another provider like DataDog can be used
+      // another provider like DataDog could be used
       ep   <- honeycombEp[IO]("server-app")
       prod <- producer[IO]
-      routes = new UserServer[IO].app(ep, prod)
+      routes = new UserServer[IO].routes(ep, prod)
       server = EmberServerBuilder.default[IO].withHttpApp(routes).build
     yield server
-
+    
 //   ____
 //  / ___|___  _ __  ___ _   _ _ __ ___   ___ _ __
 // | |   / _ \| '_ \/ __| | | | '_ ` _ \ / _ \ '__|
@@ -110,6 +136,13 @@ object ConsumerMain extends IOApp.Simple:
   def run: IO[Unit] =
     Stream.resource(resources)
       .flatMap { (ep, consumer) =>
+        // `consumer.receiveMsg` is a stream of `Message`.
+        // It contains both the payload (the event) and the
+        // Map[String, String] which in this case, contains the kernel.
+        // See the structures of `Message`:
+        // https://github.com/arinal/tradev/blob/main/modules/lib/src/main/scala/core/eda/Consumer.scala#L19
+        // Also, this is how `.receiveMsg` in pulsar is impelemented:
+        // https://github.com/arinal/tradev/blob/main/modules/lib/src/main/scala/infra/eda/pulsar/Consumer.scala#L51-L53
         consumer.receiveMsg.evalMap { msg =>
           val k = msg.props.toKernel
           ep.continueOrElseRoot("rootConsumer", k).use { t =>
