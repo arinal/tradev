@@ -1,13 +1,15 @@
 package lib.core
 
-import cats.Show
-import cats.kernel.Eq
-import cats.kernel.Order
-import java.util.UUID
-import java.time.Instant
 import monocle.Iso
 import io.circe.Encoder
 import io.circe.Decoder
+
+import cats.Show
+import cats.kernel.Eq
+import cats.kernel.Order
+
+import java.util.UUID
+import java.time.Instant
 
 abstract class Newtype[A](using
     eqv: Eq[A],

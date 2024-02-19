@@ -1,8 +1,10 @@
 package lib.core
 
+import monocle.Iso
+
 import cats.effect.kernel.Sync
 import cats.syntax.functor.*
-import monocle.Iso
+
 import java.util.UUID
 
 trait GenUUID[F[_]]:

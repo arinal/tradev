@@ -1,12 +1,13 @@
 package demos
 
-import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import io.github.iltotore.iron.*
 import io.github.iltotore.iron.constraint.all.*
 import io.github.iltotore.iron.constraint.any.DescribedAs
 import io.github.iltotore.iron.constraint.numeric.Greater
 import io.github.iltotore.iron.constraint.numeric.Less
+
+import cats.syntax.all.*
 
 @main def refinedDemo =
   val person = Person("John", 5)

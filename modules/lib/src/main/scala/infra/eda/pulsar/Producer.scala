@@ -2,16 +2,17 @@ package lib.infra.eda.pulsar
 
 import lib.core.eda.Producer
 
-import cats.Applicative
-import cats.Parallel
-import cats.effect.kernel.Async
-import cats.effect.kernel.Resource
 import dev.profunktor.pulsar.Topic
 import dev.profunktor.pulsar.Config.PulsarURL
 import dev.profunktor.pulsar.Config as PulsarConfig
 import dev.profunktor.pulsar.{ Producer as PulsarProducer, * }
 import io.circe.Encoder
 import io.circe.syntax.*
+
+import cats.Applicative
+import cats.Parallel
+import cats.effect.kernel.Async
+import cats.effect.kernel.Resource
 
 import java.nio.charset.StandardCharsets.UTF_8
 

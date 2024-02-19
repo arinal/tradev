@@ -3,21 +3,23 @@ package lib.infra.eda.pulsar
 import lib.core.eda.Consumer
 import lib.core.eda.Consumer.Message
 
+import dev.profunktor.pulsar.Config.PulsarURL
+import dev.profunktor.pulsar.{ Consumer as PulsarConsumer, * }
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.parser.decode
+import io.circe.syntax.*
+import org.apache.pulsar.client.api.MessageId
+
+import fs2.Stream
+
 import cats.Applicative
 import cats.Parallel
 import cats.effect.kernel.Async
 import cats.effect.kernel.Resource
 import cats.syntax.all.*
-import dev.profunktor.pulsar.Config.PulsarURL
-import dev.profunktor.pulsar.{ Consumer as PulsarConsumer, * }
-import fs2.Stream
-import io.circe.Decoder
-import io.circe.Encoder
-import io.circe.parser.decode
-import io.circe.syntax.*
 
 import java.nio.charset.StandardCharsets.UTF_8
-import org.apache.pulsar.client.api.MessageId
 
 object Consumer:
 
@@ -46,7 +48,7 @@ object Consumer:
     PulsarConsumer.make[F, A](client, pulsarTopic(url, topic), sub, decoder).map { c =>
       new:
         def receive: Stream[F, A] = c.autoSubscribe
-        def receiveM: Stream[F, Message[MessageId, A]] = c.subscribe.map { m =>
+        def receiveMsg: Stream[F, Message[MessageId, A]] = c.subscribe.map { m =>
           Message(m.id, m.properties, m.payload)
         }
 

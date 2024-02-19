@@ -1,10 +1,11 @@
 package org.lamedh.voltrad.core
 
 import lib.core.NumNewtype
+import lib.core.eda.Consumer
+
 import cats.derived.*
 import cats.kernel.Eq
 import cats.Show
-import lib.core.eda.Consumer
 
 type SwitchAcker[F[_], Id] = Consumer[F, Id, SwitchCommand]
 type TradeAcker[F[_], Id]  = Consumer[F, Id, TradeCommand]

@@ -4,7 +4,7 @@ import sbtwelcome._
 ThisBuild / scalaVersion     := "3.3.1"
 ThisBuild / version          := "0.1.0"
 ThisBuild / organization     := "dev.lamedh"
-ThisBuild / organizationName := "damn"
+ThisBuild / organizationName := "lamedh"
 
 Compile / run / fork := true
 
@@ -64,4 +64,5 @@ lazy val processor = (project in file("modules/app/eda.processor"))
 
 lazy val demos = (project in file("modules/app/konsole.demos"))
   .settings(commonSettings: _*)
+  .settings(libraryDependencies ++= List(natchezCore, natchezHc, natchez4s, http4sDsl, http4sSrv))
   .dependsOn(lib, core)

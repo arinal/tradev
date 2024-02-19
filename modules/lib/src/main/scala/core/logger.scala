@@ -1,8 +1,9 @@
 package lib.core
 
-import cats.effect.kernel.Sync
 import io.odin.{ Logger as OdinLogger, consoleLogger }
 import io.odin.formatter.Formatter
+
+import cats.effect.kernel.Sync
 
 trait Logger[F[_]]:
   def info(str: => String): F[Unit]

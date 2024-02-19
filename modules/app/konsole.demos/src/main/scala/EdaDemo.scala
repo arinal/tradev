@@ -1,11 +1,13 @@
 package demos
 
+import lib.core.eda.Consumer
+import lib.core.eda.Producer
+
+import fs2.Stream
+
 import cats.effect.*
 import cats.effect.std.Queue
 import cats.syntax.all.*
-import fs2.Stream
-import lib.core.eda.Consumer
-import lib.core.eda.Producer
 
 import scala.concurrent.duration.*
 

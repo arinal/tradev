@@ -28,7 +28,7 @@ object Main extends IOApp.Simple:
     Stream
       .resource(resources)
       .flatMap { (trCons, swCons, fsm) =>
-        trCons.receiveM.either(swCons.receiveM)
+        trCons.receiveMsg.either(swCons.receiveMsg)
           .union
           .evalMapAccumulate(TradeState.empty)(fsm.run)
           .evalTap { case (state, _) => Logger[IO].info(s"State: $state") }

@@ -2,6 +2,7 @@ package lib.core
 
 import cats.effect.kernel.Sync
 import cats.syntax.functor.*
+
 import java.time.Instant
 
 trait Time[F[_]]:

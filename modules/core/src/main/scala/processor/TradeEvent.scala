@@ -1,10 +1,12 @@
 package org.lamedh.voltrad.core
 
 import lib.core.*
+
+import io.circe.Codec
+
 import cats.Show
 import cats.derived.*
 import cats.kernel.Eq
-import io.circe.Codec
 
 type EventId = EventId.Type
 object EventId extends IdNewtype

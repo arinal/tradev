@@ -3,8 +3,9 @@ package lib.infra.eda.pulsar
 import dev.profunktor.pulsar.Config.PulsarURL
 import dev.profunktor.pulsar.Topic
 import dev.profunktor.pulsar.Config
-import cats.effect.kernel.Async
 import dev.profunktor.pulsar.Pulsar
+
+import cats.effect.kernel.Async
 
 def client[F[_]: Async](url: PulsarURL) = Pulsar.make(url, Pulsar.Settings())
 
